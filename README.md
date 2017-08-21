@@ -15,3 +15,5 @@
 用lstm实现句子下一个单词的预测
 
 实验数据来自Tomas Mikolov的ptb数据
+
+[数据来源](http://www.fit.vutbr.cz/~imikolov/rnnlm/)
