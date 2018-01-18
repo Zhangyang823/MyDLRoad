@@ -17,3 +17,6 @@
 实验数据来自Tomas Mikolov的ptb数据
 
 [数据来源](http://www.fit.vutbr.cz/~imikolov/rnnlm/)
+
+## CNN
+底层实现了下。。。未完。。。
