@@ -218,10 +218,11 @@ class Net:
         self.layers.append(layer)
     def train(self, trainData, trainLabel, validData, validLabel, batch_size, iteration):
         tempTrainData = trainData
-
+        temptrainLabel = trainLabel
         for iter in range(iteration):
             index = random.sample([i for i in range(tempTrainData.shape[0])],100)
             trainData = tempTrainData[index]
+            trainLabel = temptrainLabel[index]
             train_num = trainData.shape[0]
             print (str(time.clock()) + '  iter=' + str(iter) )
             for batch_iter in range(0, train_num, batch_size):
@@ -231,7 +232,8 @@ class Net:
                 else:
                     self.train_inner(trainData[batch_iter: train_num],
                         trainLabel[batch_iter: train_num])
-            print (str(time.clock()) + "  eval=" + str(self.eval(validData, validLabel)))
+            print (str(time.clock()) + "  eval=" + str(self.eval(trainData, trainLabel)))
+            print(str(time.clock()) + "  eval=" + str(self.eval(validData, validLabel)))
     def train_inner(self, data, label):
         lay_num = len(self.layers)
         in_data = data
@@ -301,12 +303,14 @@ def loadLabelSet(filename):
     print ('load label finished'  )
     return ret
 
+# train_feature = loadImageSet("data//MNIST_data//train-images.idx3-ubyte")
+# train_label = loadLabelSet("data//MNIST_data//train-labels.idx1-ubyte")
+# valid_feature = loadImageSet("data//MNIST_data//t10k-images.idx3-ubyte")
+# valid_label = loadLabelSet("data//MNIST_data//t10k-labels.idx1-ubyte")
 train_feature = loadImageSet("data\\MNIST_data\\train-images.idx3-ubyte")
 train_label = loadLabelSet("data\\MNIST_data\\train-labels.idx1-ubyte")
-
 valid_feature = loadImageSet("data\\MNIST_data\\t10k-images.idx3-ubyte")
 valid_label = loadLabelSet("data\\MNIST_data\\t10k-labels.idx1-ubyte")
-
 
 net = Net()
 net.addLayer(ConvLayer(1, 20, 4, 0.01, 0.9))
