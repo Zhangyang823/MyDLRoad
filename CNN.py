@@ -226,6 +226,7 @@ class Net:
             train_num = trainData.shape[0]
             print (str(time.clock()) + '  iter=' + str(iter) )
             for batch_iter in range(0, train_num, batch_size):
+                print(str(batch_iter) + '/' + str(train_num))
                 if batch_iter + batch_size < train_num:
                     self.train_inner(trainData[batch_iter: batch_iter + batch_size],
                         trainLabel[batch_iter: batch_iter + batch_size])
