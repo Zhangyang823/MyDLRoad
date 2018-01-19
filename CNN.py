@@ -44,8 +44,8 @@ def discreterize(in_data, size):
 
 class ConvLayer(object):
     def __init__(self, in_channel, out_channel, kernel_size, lr=0.01, momentum=0.9, name='Conv'):
-        self.w = np.ones((in_channel, out_channel, kernel_size, kernel_size),dtype=np.float64)
-        self.b = np.zeros((out_channel),dtype=np.float64)
+        self.w = np.random.rand(in_channel, out_channel, kernel_size, kernel_size)
+        self.b = np.random.rand(out_channel)
         self.layer_name = name
         self.lr = lr
         self.momentum = momentum
@@ -93,18 +93,22 @@ class ConvLayer(object):
         # gradient_x /= self.batch_size
         # gradient_x /= in_batch
         # update
+        # self.prev_gradient_w = self.prev_gradient_w * self.momentum - self.gradient_w
+        # self.w += self.lr * self.prev_gradient_w
+        # self.prev_gradient_b = self.prev_gradient_b * self.momentum - self.gradient_b
+        # self.b += self.lr * self.prev_gradient_b
         self.prev_gradient_w = self.prev_gradient_w * self.momentum - self.gradient_w
-        self.w += self.lr * self.prev_gradient_w
+        self.w += self.lr * self.gradient_w
         self.prev_gradient_b = self.prev_gradient_b * self.momentum - self.gradient_b
-        self.b += self.lr * self.prev_gradient_b
+        self.b += self.lr * self.gradient_b
         return gradient_x
 
 class FCLayer:
     def __init__(self, in_num, out_num, lr = 0.01, momentum=0.9):
         self._in_num = in_num
         self._out_num = out_num
-        self.w = np.ones((in_num, out_num),dtype=np.float64)
-        self.b = np.zeros((out_num, 1),dtype=np.float64)
+        self.w = np.random.rand(in_num, out_num)
+        self.b = np.random.rand(out_num, 1)
         self.lr = lr
         self.momentum = momentum
         self.prev_grad_w = np.zeros_like(self.w)
@@ -134,8 +138,10 @@ class FCLayer:
         # residual_x = np.dot(self.w, loss)
         self.prev_grad_w = self.prev_grad_w * self.momentum - grad_w
         self.prev_grad_b = self.prev_grad_b * self.momentum - grad_b
-        self.w -= self.lr * self.prev_grad_w
-        self.b -= self.lr * self.prev_grad_b
+        # self.w -= self.lr * self.prev_grad_w
+        # self.b -= self.lr * self.prev_grad_b
+        self.w -= self.lr * grad_w
+        self.b -= self.lr * grad_b
         return residual_x
 
 class ReLULayer:
@@ -205,11 +211,14 @@ class SoftmaxLayer:
     def __init__(self, name='Softmax'):
         pass
     def forward(self, in_data):
+        self.mm = np.max(in_data, axis=1).reshape((in_data.shape[0],1)).repeat(in_data.shape[1], axis=1)
+        self.mm[self.mm<=0] = 1
+        in_data = in_data / self.mm
         exp_out = np.exp(in_data)
-        self.top_val = exp_out / np.sum(exp_out, axis=1).reshape((exp_out.shape[0],1)).repeat(10, axis=1)
+        self.top_val = exp_out / np.sum(exp_out, axis=1).reshape((exp_out.shape[0],1)).repeat(in_data.shape[1], axis=1)
         return self.top_val
     def backward(self, residual):
-        return self.top_val - residual
+        return (self.top_val - residual)
 
 class Net:
     def __init__(self):
@@ -314,18 +323,18 @@ valid_feature = loadImageSet("data\\MNIST_data\\t10k-images.idx3-ubyte")
 valid_label = loadLabelSet("data\\MNIST_data\\t10k-labels.idx1-ubyte")
 
 net = Net()
-net.addLayer(ConvLayer(1, 20, 4, 0.01, 0.9))
+net.addLayer(ConvLayer(1, 20, 4, 0.1, 0.9))
 net.addLayer(ReLULayer())
-net.addLayer(MaxPoolingLayer(2))
+# net.addLayer(MaxPoolingLayer(2))
 
-net.addLayer(ConvLayer(20, 40, 5, 0.01, 0.9))
+net.addLayer(ConvLayer(20, 40, 5, 0.1, 0.9))
 net.addLayer(ReLULayer())
-net.addLayer(MaxPoolingLayer(3))
+# net.addLayer(MaxPoolingLayer(3))
 
 net.addLayer(FlattenLayer())
-net.addLayer(FCLayer(40 * 3 * 3, 150, 0.01, 0.9))
+net.addLayer(FCLayer(40 * 21 * 21, 150, 0.1, 0.9))
 net.addLayer(ReLULayer())
-net.addLayer(FCLayer(150, 10, 0.01, 0.9))
+net.addLayer(FCLayer(150, 10, 0.1, 0.9))
 net.addLayer(SoftmaxLayer())
 print( 'net build ok')
 net.train(train_feature, train_label, valid_feature[0:100], valid_label[0:100], 10 ,10)
