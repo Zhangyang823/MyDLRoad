@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import sys
 import random
 
@@ -43,8 +44,8 @@ def discreterize(in_data, size):
 
 class ConvLayer(object):
     def __init__(self, in_channel, out_channel, kernel_size, lr=0.01, momentum=0.9, name='Conv'):
-        self.w = np.ones((in_channel, out_channel, kernel_size, kernel_size))
-        self.b = np.zeros((out_channel))
+        self.w = np.ones((in_channel, out_channel, kernel_size, kernel_size),dtype=np.float64)
+        self.b = np.zeros((out_channel),dtype=np.float64)
         self.layer_name = name
         self.lr = lr
         self.momentum = momentum
@@ -56,7 +57,7 @@ class ConvLayer(object):
     #     return x
     def forward(self, in_data):
         # assume the first index is channel index
-        print ('conv forward:' + str(in_data.shape))
+        # print ('conv forward:' + str(in_data.shape))
         in_batch, in_channel, in_row, in_col = in_data.shape
         out_channel, kernel_size = self.w.shape[1], self.w.shape[2]
         self.top_val = np.zeros((in_batch, out_channel, in_row - kernel_size + 1, in_col - kernel_size + 1))
@@ -76,7 +77,7 @@ class ConvLayer(object):
         # self.gradient_b = residual.sum(axis=3).sum(axis=2).sum(axis=0) / self.batch_size
         self.gradient_b = residual.sum(axis=3).sum(axis=2).sum(axis=0)
         # gradient_w
-        self.gradient_w = np.zeros_like(self.w)
+        self.gradient_w = np.zeros_like(self.w,dtype=np.float64)
         for b_id in range(in_batch):
             for i in range(in_channel):
                 for o in range(out_channel):
@@ -84,7 +85,7 @@ class ConvLayer(object):
         # self.gradient_w /= self.batch_size
         # self.gradient_w /= in_batch
         # gradient_x
-        gradient_x = np.zeros_like(self.bottom_val)
+        gradient_x = np.zeros_like(self.bottom_val,dtype=np.float64)
         for b_id in range(in_batch):
             for i in range(in_channel):
                 for o in range(out_channel):
@@ -102,8 +103,8 @@ class FCLayer:
     def __init__(self, in_num, out_num, lr = 0.01, momentum=0.9):
         self._in_num = in_num
         self._out_num = out_num
-        self.w = np.ones((in_num, out_num))
-        self.b = np.zeros((out_num, 1))
+        self.w = np.ones((in_num, out_num),dtype=np.float64)
+        self.b = np.zeros((out_num, 1),dtype=np.float64)
         self.lr = lr
         self.momentum = momentum
         self.prev_grad_w = np.zeros_like(self.w)
@@ -111,7 +112,7 @@ class FCLayer:
     # def _sigmoid(self, in_data):
     #     return 1 / (1 + np.exp(-in_data))
     def forward(self, in_data):
-        print( 'fc forward=' + str(in_data.shape) )
+        # print( 'fc forward=' + str(in_data.shape) )
         in_batch = in_data.shape[0]
         self.top_val = np.zeros((in_batch, self._out_num))
         self.bottom_val = in_data
@@ -122,11 +123,11 @@ class FCLayer:
         in_batch = loss.shape[0]
 
         # residual_z = loss * self.topVal * (1 - self.topVal)
-        grad_w = np.zeros_like(self.w)
+        grad_w = np.zeros_like(self.w,dtype=np.float64)
         for b_id in range(in_batch):
             grad_w += np.dot(self.bottom_val[b_id].reshape(grad_w.shape[0],1), loss[b_id].reshape(1,grad_w.shape[1])).reshape(grad_w.shape)
         grad_b = np.sum(loss)
-        residual_x = np.zeros_like(self.bottom_val)
+        residual_x = np.zeros_like(self.bottom_val,dtype=np.float64)
         for b_id in range(in_batch):
             # aaa = np.dot(self.w, loss[b_id].T)
             residual_x[b_id] = np.dot(self.w, loss[b_id].T).T
@@ -158,8 +159,8 @@ class MaxPoolingLayer:
     def forward(self, in_data):
         in_batch, in_channel, in_row, in_col = in_data.shape
         k = self.kernel_size
-        out_row = in_row / k + (1 if in_row % k != 0 else 0)
-        out_col = in_col / k + (1 if in_col % k != 0 else 0)
+        out_row = int(in_row / k + (1 if in_row % k != 0 else 0))
+        out_col = int(in_col / k + (1 if in_col % k != 0 else 0))
 
         self.flag = np.zeros_like(in_data)
         ret = np.empty((in_batch, in_channel, out_row, out_col))
@@ -170,13 +171,13 @@ class MaxPoolingLayer:
                         height = k if (oy + 1) * k <= in_row else in_row - oy * k
                         width = k if (ox + 1) * k <= in_col else in_col - ox * k
                         idx = np.argmax(in_data[b_id, c, oy * k: oy * k + height, ox * k: ox * k + width])
-                        offset_r = idx / width
-                        offset_c = idx % width
+                        offset_r = int(idx / width)
+                        offset_c = int(idx % width)
                         self.flag[b_id, c, oy * k + offset_r, ox * k + offset_c] = 1
                         ret[b_id, c, oy, ox] = in_data[b_id, c, oy * k + offset_r, ox * k + offset_c]
         return ret
     def backward(self, residual):
-        in_batch, in_channel, in_row, in_col = self.flag
+        in_batch, in_channel, in_row, in_col = self.flag.shape
         k = self.kernel_size
         out_row, out_col = residual.shape[2], residual.shape[3]
 
@@ -187,7 +188,7 @@ class MaxPoolingLayer:
                     for ox in range(out_col):
                         height = k if (oy + 1) * k <= in_row else in_row - oy * k
                         width = k if (ox + 1) * k <= in_col else in_col - ox * k
-                        gradient_x[b_id, c, oy * k + offset_r, ox * k + offset_c] = residual[b_id, c, oy, ox]
+                        gradient_x[b_id, c, oy * k : oy * k + height, ox * k : ox * k + width] = residual[b_id, c, oy, ox]
         gradient_x[self.flag == 0] = 0
         return gradient_x
 
@@ -205,7 +206,7 @@ class SoftmaxLayer:
         pass
     def forward(self, in_data):
         exp_out = np.exp(in_data)
-        self.top_val = exp_out / np.sum(exp_out, axis=1)
+        self.top_val = exp_out / np.sum(exp_out, axis=1).reshape((exp_out.shape[0],1)).repeat(10, axis=1)
         return self.top_val
     def backward(self, residual):
         return self.top_val - residual
@@ -218,7 +219,7 @@ class Net:
     def train(self, trainData, trainLabel, validData, validLabel, batch_size, iteration):
         train_num = trainData.shape[0]
         for iter in range(iteration):
-            print ('iter=' + str(iter))
+            print (str(time.clock()) + '  iter=' + str(iter) )
             for batch_iter in range(0, train_num, batch_size):
                 if batch_iter + batch_size < train_num:
                     self.train_inner(trainData[batch_iter: batch_iter + batch_size],
@@ -226,7 +227,7 @@ class Net:
                 else:
                     self.train_inner(trainData[batch_iter: train_num],
                         trainLabel[batch_iter: train_num])
-            print ("eval=" + str(self.eval(validData, validLabel)))
+            print (str(time.clock()) + "  eval=" + str(self.eval(validData, validLabel)))
     def train_inner(self, data, label):
         lay_num = len(self.layers)
         in_data = data
@@ -248,12 +249,74 @@ class Net:
         return np.sum(out_idx == label_idx) / float(out_idx.shape[0])
 
 
-net = Net()
+import struct
+from array import array
 
-net.addLayer(ConvLayer(3,4,2))
+def loadImageSet(filename):  
+    print ("load image set",filename)  
+    binfile= open(filename, 'rb')  
+    buffers = binfile.read()  
+   
+    head = struct.unpack_from('>IIII' , buffers ,0)  
+    print ("head,",head)  
+   
+    offset = struct.calcsize('>IIII')  
+    imgNum = head[1]  
+    width = head[2]  
+    height = head[3]  
+    #[60000]*28*28  
+    bits = imgNum * width * height  
+    bitsString = '>' + str(bits) + 'B' #like '>47040000B'  
+   
+    imgs = struct.unpack_from(bitsString,buffers,offset)  
+   
+    binfile.close()  
+    imgs = np.reshape(imgs,[imgNum,1,width,height])
+    print ("load imgs finished")  
+    return imgs  
+   
+def loadLabelSet(filename):  
+   
+    print ("load label set",filename  )
+    binfile = open(filename, 'rb')  
+    buffers = binfile.read()  
+   
+    head = struct.unpack_from('>II' , buffers ,0)  
+    print ("head,",head)  
+    imgNum=head[1]  
+   
+    offset = struct.calcsize('>II')  
+    numString = '>'+str(imgNum)+"B"  
+    labels = struct.unpack_from(numString , buffers , offset)  
+    binfile.close()  
+    labels = np.reshape(labels,[imgNum,1])
+
+    ret = np.zeros((imgNum,10),dtype=np.float64)
+    for i in range(imgNum):
+        ret[i][labels[i]] = 1.0
+    print ('load label finished'  )
+    return ret
+
+train_feature = loadImageSet("data\\MNIST_data\\train-images.idx3-ubyte")  
+train_label = loadLabelSet("data\\MNIST_data\\train-labels.idx1-ubyte") 
+
+valid_feature = loadImageSet("data\\MNIST_data\\t10k-images.idx3-ubyte") 
+valid_label = loadLabelSet("data\\MNIST_data\\t10k-labels.idx1-ubyte")  
+
+
+net = Net()
+net.addLayer(ConvLayer(1, 20, 4, 0.01, 0.9))
+net.addLayer(ReLULayer())
+net.addLayer(MaxPoolingLayer(2))
+
+net.addLayer(ConvLayer(20, 40, 5, 0.01, 0.9))
+net.addLayer(ReLULayer())
+net.addLayer(MaxPoolingLayer(3))
+
 net.addLayer(FlattenLayer())
-net.addLayer(FCLayer(36,10))
-net.addLayer(FCLayer(10,1))
-a = np.zeros((3,3,4,4))
-labels = np.zeros((3))
-net.train_inner(a,labels)
+net.addLayer(FCLayer(40 * 3 * 3, 150, 0.01, 0.9))
+net.addLayer(ReLULayer())
+net.addLayer(FCLayer(150, 10, 0.01, 0.9))
+net.addLayer(SoftmaxLayer())
+print( 'net build ok')
+net.train(train_feature[0:100], train_label[0:100], valid_feature[0:100], valid_label[0:100], 10 ,10)

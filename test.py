@@ -248,12 +248,15 @@ class Net:
         return np.sum(out_idx == label_idx) / float(out_idx.shape[0])
 
 
-net = Net()
+# net = Net()
 
-net.addLayer(ConvLayer(3,4,2))
-net.addLayer(FlattenLayer())
-net.addLayer(FCLayer(36,10))
-net.addLayer(FCLayer(10,1))
-a = np.zeros((3,3,4,4))
-labels = np.zeros((3))
-net.train_inner(a,labels)
+# net.addLayer(ConvLayer(3,4,2))
+# net.addLayer(FlattenLayer())
+# net.addLayer(FCLayer(36,10))
+# net.addLayer(FCLayer(10,1))
+# a = np.zeros((3,3,4,4))
+# labels = np.zeros((3))
+# net.train_inner(a,labels)
+a = np.ones((5,5))
+b = np.ones((5,5))
+print(a*b)
