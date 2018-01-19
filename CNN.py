@@ -46,6 +46,8 @@ class ConvLayer(object):
     def __init__(self, in_channel, out_channel, kernel_size, lr=0.01, momentum=0.9, name='Conv'):
         self.w = np.random.rand(in_channel, out_channel, kernel_size, kernel_size)
         self.b = np.random.rand(out_channel)
+        self.w = self.w / np.sum(self.w)
+        self.b = self.b / np.sum(self.b)
         self.layer_name = name
         self.lr = lr
         self.momentum = momentum
@@ -108,7 +110,11 @@ class FCLayer:
         self._in_num = in_num
         self._out_num = out_num
         self.w = np.random.rand(in_num, out_num)
+        # self.w = self.w / np.sum(np.sum(self.w))
         self.b = np.random.rand(out_num, 1)
+        # self.b = self.b / np.sum(np.sum(self.b))
+        self.w = self.w / np.sum(self.w)
+        self.b = self.b / np.sum(self.b)
         self.lr = lr
         self.momentum = momentum
         self.prev_grad_w = np.zeros_like(self.w)
@@ -152,10 +158,12 @@ class ReLULayer:
         self.top_val = in_data
         ret = in_data.copy()
         ret[ret < 0] = 0
+        # ret[ret > 0] = 1
         return ret
     def backward(self, residual):
         gradient_x = residual.copy()
         gradient_x[self.top_val < 0] = 0
+        gradient_x[self.top_val > 0] = 1
         return gradient_x
 
 class MaxPoolingLayer:
@@ -194,7 +202,8 @@ class MaxPoolingLayer:
                     for ox in range(out_col):
                         height = k if (oy + 1) * k <= in_row else in_row - oy * k
                         width = k if (ox + 1) * k <= in_col else in_col - ox * k
-                        gradient_x[b_id, c, oy * k : oy * k + height, ox * k : ox * k + width] = residual[b_id, c, oy, ox]
+                        offset_r, offset_c = np.where(self.flag[b_id, c, oy * k : oy * k + height, ox * k : ox * k + width]==1)
+                        gradient_x[b_id, c, oy * k + offset_r, ox * k + offset_c] = residual[b_id, c, oy, ox]
         gradient_x[self.flag == 0] = 0
         return gradient_x
 
@@ -218,7 +227,7 @@ class SoftmaxLayer:
         self.top_val = exp_out / np.sum(exp_out, axis=1).reshape((exp_out.shape[0],1)).repeat(in_data.shape[1], axis=1)
         return self.top_val
     def backward(self, residual):
-        return (self.top_val - residual)
+        return (self.top_val - residual) * (self.top_val - residual)
 
 class Net:
     def __init__(self):
@@ -228,11 +237,12 @@ class Net:
     def train(self, trainData, trainLabel, validData, validLabel, batch_size, iteration):
         tempTrainData = trainData
         temptrainLabel = trainLabel
+        index = random.sample([i for i in range(tempTrainData.shape[0])], 100)
+        trainData = tempTrainData[index]
+        trainLabel = temptrainLabel[index]
+        train_num = trainData.shape[0]
         for iter in range(iteration):
-            index = random.sample([i for i in range(tempTrainData.shape[0])],100)
-            trainData = tempTrainData[index]
-            trainLabel = temptrainLabel[index]
-            train_num = trainData.shape[0]
+
             print (str(time.clock()) + '  iter=' + str(iter) )
             for batch_iter in range(0, train_num, batch_size):
                 print(str(batch_iter) + '/' + str(train_num))
@@ -313,28 +323,30 @@ def loadLabelSet(filename):
     print ('load label finished'  )
     return ret
 
-# train_feature = loadImageSet("data//MNIST_data//train-images.idx3-ubyte")
-# train_label = loadLabelSet("data//MNIST_data//train-labels.idx1-ubyte")
-# valid_feature = loadImageSet("data//MNIST_data//t10k-images.idx3-ubyte")
-# valid_label = loadLabelSet("data//MNIST_data//t10k-labels.idx1-ubyte")
-train_feature = loadImageSet("data\\MNIST_data\\train-images.idx3-ubyte")
-train_label = loadLabelSet("data\\MNIST_data\\train-labels.idx1-ubyte")
-valid_feature = loadImageSet("data\\MNIST_data\\t10k-images.idx3-ubyte")
-valid_label = loadLabelSet("data\\MNIST_data\\t10k-labels.idx1-ubyte")
+train_feature = loadImageSet("data//MNIST_data//train-images.idx3-ubyte")
+train_feature[train_feature>0] = 1
+train_label = loadLabelSet("data//MNIST_data//train-labels.idx1-ubyte")
+valid_feature = loadImageSet("data//MNIST_data//t10k-images.idx3-ubyte")
+valid_feature[valid_feature>0] = 1
+valid_label = loadLabelSet("data//MNIST_data//t10k-labels.idx1-ubyte")
+# train_feature = loadImageSet("data\\MNIST_data\\train-images.idx3-ubyte")
+# train_label = loadLabelSet("data\\MNIST_data\\train-labels.idx1-ubyte")
+# valid_feature = loadImageSet("data\\MNIST_data\\t10k-images.idx3-ubyte")
+# valid_label = loadLabelSet("data\\MNIST_data\\t10k-labels.idx1-ubyte")
 
 net = Net()
-net.addLayer(ConvLayer(1, 20, 4, 0.1, 0.9))
+net.addLayer(ConvLayer(1, 6, 4, 0.1, 0.9))
 net.addLayer(ReLULayer())
-# net.addLayer(MaxPoolingLayer(2))
+net.addLayer(MaxPoolingLayer(2))
 
-net.addLayer(ConvLayer(20, 40, 5, 0.1, 0.9))
+net.addLayer(ConvLayer(6, 16, 5, 0.1, 0.9))
 net.addLayer(ReLULayer())
-# net.addLayer(MaxPoolingLayer(3))
+net.addLayer(MaxPoolingLayer(3))
 
 net.addLayer(FlattenLayer())
-net.addLayer(FCLayer(40 * 21 * 21, 150, 0.1, 0.9))
+net.addLayer(FCLayer(16 * 3 * 3, 100, 0.1, 0.9))
 net.addLayer(ReLULayer())
-net.addLayer(FCLayer(150, 10, 0.1, 0.9))
+net.addLayer(FCLayer(100, 10, 0.1, 0.9))
 net.addLayer(SoftmaxLayer())
 print( 'net build ok')
 net.train(train_feature, train_label, valid_feature[0:100], valid_label[0:100], 10 ,10)

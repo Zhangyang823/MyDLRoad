@@ -3,5 +3,5 @@
   <component name="PreferredVcsStorage">
     <preferredVcsName>ApexVCS</preferredVcsName>
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.5.2 (C:\Program Files\Anaconda3\python.exe)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.5.2 (ssh://houxin@10.0.0.13:22/home/houxin/anaconda3/bin/python)" project-jdk-type="Python SDK" />
 </project>
