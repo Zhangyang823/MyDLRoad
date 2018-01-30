@@ -235,6 +235,12 @@ class Net:
             index = np.random.choice([ i for i in range(train_num)], train_num)
             trainData = strainData[index]
             trainLabel = strainLabel[index]
+
+            if iter > 100:
+                lay_num = len(self.layers)
+                for i in range(lay_num):
+                   self.layers[i].lr *= (0.001 ** ( iter - 100 ) / 100)
+
             print(str(time.clock()) + '  iter=' + str(iter))
             for batch_iter in range(0, train_num, batch_size):
                 if batch_iter + batch_size < train_num:
@@ -395,6 +401,6 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=1000):
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 X_train, y_train, X_val, y_val, X_test, y_test = get_CIFAR10_data()
-N = 1000
-net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],100,1000)
+N = 100
+net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],10,1000)
 # net.train(train_feature, train_label, valid_feature[0:100], valid_label[0:100], 10 ,10)
