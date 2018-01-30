@@ -103,8 +103,10 @@ class ConvLayer(object):
                 for k in range(F):  # compute dw
                     dw[k, :, :, :] += np.sum(x_pad_masked * (residual[:, k, i, j])[:, None, None, None], axis=0)
                 for n in range(N):  # compute dx_pad
-                    dx_pad[n, :, i * stride:i * stride + HH, j * stride:j * stride + WW] += np.sum((self.w[:, :, :, :] *
-                                                                                                    (residual[n, :, i, j])[
+                    temp_w = np.rot90(self.w,2,(2,3))
+                    dx_pad[n, :, i * stride:i * stride + HH, j * stride:j * stride + WW] += np.sum((temp_w[:, :, :, :] *
+                                                                                                    (residual[n, :, i,
+                                                                                                     j])[
                                                                                                     :, None, None,
                                                                                                     None]), axis=0)
         dx[:,:,:,:] = dx_pad[:, :, pad:-pad, pad:-pad]
@@ -233,6 +235,7 @@ class Net:
         strainLabel = trainLabel
         for iter in range(iteration):
             index = np.random.choice([ i for i in range(train_num)], train_num)
+            # index = [i for i in range(train_num)]
             trainData = strainData[index]
             trainLabel = strainLabel[index]
 
@@ -355,7 +358,7 @@ net.addLayer(ReLULayer())
 
 net.addLayer(FlattenLayer())
 net.addLayer(FCLayer(6 * 6 * 16, 100, rate))
-# net.addLayer(ReLULayer())
+net.addLayer(ReLULayer())
 net.addLayer(FCLayer(100, 10, rate))
 net.addLayer(SoftmaxLayer())
 # print('net build ok')
@@ -401,6 +404,7 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=1000):
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 X_train, y_train, X_val, y_val, X_test, y_test = get_CIFAR10_data()
-N = 100
-net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],10,1000)
+N = 1000
+M = 100
+net.train(X_train[0:N], y_train[0:N], X_val[0:M], y_val[0:M],100,200)
 # net.train(train_feature, train_label, valid_feature[0:100], valid_label[0:100], 10 ,10)
