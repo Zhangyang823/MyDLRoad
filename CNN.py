@@ -500,6 +500,6 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=1000):
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 X_train, y_train, X_val, y_val, X_test, y_test = get_CIFAR10_data()
-N = 1000
-net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],100,10)
+N = 10000
+net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],1000,300)
 # net.train(train_feature, train_label, valid_feature[0:100], valid_label[0:100], 10 ,10)
