@@ -36,3 +36,5 @@ Relu ok
 softmax ok
 
 maxpool  .
+
+$f=\frac{1}{2}$
