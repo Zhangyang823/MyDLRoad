@@ -48,14 +48,26 @@ def discreterize(in_data, size):
 
 
 class ConvLayer(object):
-    def __init__(self, in_channel, out_channel, kernel_size, lr=0.01, momentum=0.9, name='Conv'):
-        self.w = np.random.rand(in_channel, out_channel, kernel_size, kernel_size)
-        self.b = np.random.rand(out_channel)
-        self.w = self.w / np.sum(self.w)
-        self.b = self.b / np.sum(self.b)
+    def __init__(self, in_channel, out_channel, kernel_size, lr=0.01, stride = 1, pad = 1, momentum=0.9, reg = 0.75, name='Conv'):
+        self.w = np.random.randn(out_channel,in_channel, kernel_size, kernel_size)
+        self.b = np.random.randn(out_channel)
+        # self.w = self.w / np.sum(self.w)
+        # self.b = self.b / np.sum(self.b)
+        # self.layer_name = name
+        # self.lr = lr
+        # self.momentum = momentum
+        #
+        # self.prev_gradient_w = np.zeros_like(self.w)
+        # self.prev_gradient_b = np.zeros_like(self.b)
+        w_shape = (out_channel,in_channel, kernel_size, kernel_size)
+        # self.w = np.linspace(-0.2, 0.3, num= np.prod(w_shape) ).reshape(w_shape)
+        # self.b = np.linspace(-0.1, 0.2, num=out_channel)
         self.layer_name = name
         self.lr = lr
         self.momentum = momentum
+        self.stride = stride
+        self.pad = pad
+        self.reg = reg
 
         self.prev_gradient_w = np.zeros_like(self.w)
         self.prev_gradient_b = np.zeros_like(self.b)
@@ -66,50 +78,118 @@ class ConvLayer(object):
     def forward(self, in_data):
         # assume the first index is channel index
         # print ('conv forward:' + str(in_data.shape))
-        in_batch, in_channel, in_row, in_col = in_data.shape
-        out_channel, kernel_size = self.w.shape[1], self.w.shape[2]
-        self.top_val = np.zeros((in_batch, out_channel, in_row - kernel_size + 1, in_col - kernel_size + 1))
-        self.bottom_val = in_data
+        self.out = None
+        #############################################################################
+        # TODO: Implement the convolutional forward pass.                           #
+        # Hint: you can use the function np.pad for padding.                        #
+        #############################################################################
+        N, C, H, W = in_data.shape
+        F, _, HH, WW = self.w.shape
+        stride, pad = self.stride, self.pad
+        H_out = int(1 + (H + 2 * pad - HH) / stride)
+        W_out = int(1 + (W + 2 * pad - WW) / stride)
+        self.out = np.zeros((N , F , H_out, W_out))
 
-        for b_id in range(in_batch):
-            for o in range(out_channel):
-                for i in range(in_channel):
-                    self.top_val[b_id, o] += conv2(in_data[b_id, i], self.w[i, o])
-                self.top_val[b_id, o] += self.b[o]
-        return self.top_val
+        in_data_pad = np.pad(in_data, ((0,), (0,), (pad,), (pad,)), mode='constant', constant_values=0)
+        for i in range(H_out):
+            for j in range(W_out):
+                in_data_pad_masked = in_data_pad[:, :, i*stride:i*stride+HH, j*stride:j*stride+WW]
+                for k in range(F):
+                    self.out[:, k , i, j] = np.sum(in_data_pad_masked * self.w[k, :, :, :], axis=(1,2,3))
+
+        # in_batch, in_channel, in_row, in_col = in_data.shape
+        # out_channel, kernel_size = self.w.shape[1], self.w.shape[2]
+        # self.top_val = np.zeros((in_batch, out_channel, in_row - kernel_size + 1, in_col - kernel_size + 1))
+        self.bottom_val = in_data
+        #
+        # for b_id in range(in_batch):
+        #     for o in range(out_channel):
+        #         for i in range(in_channel):
+        #             self.top_val[b_id, o] += conv2(in_data[b_id, i], self.w[i, o])
+        #         self.top_val[b_id, o] += self.b[o]
+        # return self.top_val
+        return self.out
 
     def backward(self, residual):
-        in_channel, out_channel, kernel_size, _ = self.w.shape
-        in_batch = residual.shape[0]
-        # gradient_b
-        # self.gradient_b = residual.sum(axis=3).sum(axis=2).sum(axis=0) / self.batch_size
-        self.gradient_b = residual.sum(axis=3).sum(axis=2).sum(axis=0)
-        # gradient_w
-        self.gradient_w = np.zeros_like(self.w, dtype=np.float64)
-        for b_id in range(in_batch):
-            for i in range(in_channel):
-                for o in range(out_channel):
-                    self.gradient_w[i, o] += conv2(self.bottom_val[b_id, i], residual[b_id, o])
-        # self.gradient_w /= self.batch_size
-        # self.gradient_w /= in_batch
-        # gradient_x
-        gradient_x = np.zeros_like(self.bottom_val, dtype=np.float64)
-        for b_id in range(in_batch):
-            for i in range(in_channel):
-                for o in range(out_channel):
-                    gradient_x[b_id, i] += conv2(padding(residual[b_id, o], kernel_size - 1), rot180(self.w[i, o]))
-        # gradient_x /= self.batch_size
-        # gradient_x /= in_batch
-        # update
+        # in_channel, out_channel, kernel_size, _ = self.w.shape
+        # in_batch = residual.shape[0]
+        # # gradient_b
+        # # self.gradient_b = residual.sum(axis=3).sum(axis=2).sum(axis=0) / self.batch_size
+        # self.gradient_b = residual.sum(axis=3).sum(axis=2).sum(axis=0)
+        # # gradient_w
+        # self.gradient_w = np.zeros_like(self.w, dtype=np.float64)
+        # for b_id in range(in_batch):
+        #     for i in range(in_channel):
+        #         for o in range(out_channel):
+        #             self.gradient_w[i, o] += conv2(self.bottom_val[b_id, i], residual[b_id, o])
+        # # self.gradient_w /= self.batch_size
+        # # self.gradient_w /= in_batch
+        # # gradient_x
+        # gradient_x = np.zeros_like(self.bottom_val, dtype=np.float64)
+        # for b_id in range(in_batch):
+        #     for i in range(in_channel):
+        #         for o in range(out_channel):
+        #             gradient_x[b_id, i] += conv2(padding(residual[b_id, o], kernel_size - 1), rot180(self.w[i, o]))
+        # # gradient_x /= self.batch_size
+        # # gradient_x /= in_batch
+        # # update
+        # # self.prev_gradient_w = self.prev_gradient_w * self.momentum - self.gradient_w
+        # # self.w += self.lr * self.prev_gradient_w
+        # # self.prev_gradient_b = self.prev_gradient_b * self.momentum - self.gradient_b
+        # # self.b += self.lr * self.prev_gradient_b
         # self.prev_gradient_w = self.prev_gradient_w * self.momentum - self.gradient_w
-        # self.w += self.lr * self.prev_gradient_w
+        # self.w += self.lr * self.gradient_w
         # self.prev_gradient_b = self.prev_gradient_b * self.momentum - self.gradient_b
-        # self.b += self.lr * self.prev_gradient_b
-        self.prev_gradient_w = self.prev_gradient_w * self.momentum - self.gradient_w
-        self.w += self.lr * self.gradient_w
-        self.prev_gradient_b = self.prev_gradient_b * self.momentum - self.gradient_b
-        self.b += self.lr * self.gradient_b
-        return gradient_x
+        # self.b += self.lr * self.gradient_b
+
+        """
+          A naive implementation of the backward pass for a convolutional layer.
+
+          Inputs:
+          - dout: Upstream derivatives.
+          - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
+
+          Returns a tuple of:
+          - dx: Gradient with respect to x
+          - dw: Gradient with respect to w
+          - db: Gradient with respect to b
+          """
+        # dx, dw, db = None, None, None
+        #############################################################################
+        # TODO: Implement the convolutional backward pass.                          #
+        #############################################################################
+        # x, w, b, conv_param = cache
+
+        N, C, H, W = self.bottom_val.shape
+        F, _, HH, WW = self.w.shape
+        stride, pad = self.stride, self.pad
+        H_out = int(1 + (H + 2 * pad - HH) / stride)
+        W_out = int(1 + (W + 2 * pad - WW) / stride)
+
+        x_pad = np.pad(self.bottom_val, ((0,), (0,), (pad,), (pad,)), mode='constant', constant_values=0)
+        dx = np.zeros_like(self.bottom_val)
+        dx_pad = np.zeros_like(x_pad)
+        dw = np.zeros_like(self.w)
+        # db = np.zeros_like(self.b)
+
+        db = np.sum(residual, axis=(0, 2, 3))
+
+        x_pad = np.pad(self.bottom_val, ((0,), (0,), (pad,), (pad,)), mode='constant', constant_values=0)
+        for i in range(H_out):
+            for j in range(W_out):
+                x_pad_masked = x_pad[:, :, i * stride:i * stride + HH, j * stride:j * stride + WW]
+                for k in range(F):  # compute dw
+                    dw[k, :, :, :] += np.sum(x_pad_masked * (residual[:, k, i, j])[:, None, None, None], axis=0)
+                for n in range(N):  # compute dx_pad
+                    dx_pad[n, :, i * stride:i * stride + HH, j * stride:j * stride + WW] += np.sum((self.w[:, :, :, :] *
+                                                                                                    (residual[n, :, i, j])[
+                                                                                                    :, None, None,
+                                                                                                    None]), axis=0)
+        dx[:,:,:,:] = dx_pad[:, :, pad:-pad, pad:-pad]
+        self.w -= self.lr * (dw + self.prev_gradient_w * self.reg)
+        self.b -= self.lr * db
+        self.prev_gradient_w = self.w
+        return dx
 
 
 class FCLayer:
@@ -362,19 +442,20 @@ def loadLabelSet(filename):
 # valid_label = loadLabelSet("data\\MNIST_data\\t10k-labels.idx1-ubyte")
 
 net = Net()
-net.addLayer(ConvLayer(3, 8, 4, 1, 0.9))
-net.addLayer(ReLULayer())
-net.addLayer(MaxPoolingLayer(2))
-
-net.addLayer(ConvLayer(8, 5, 5, 1, 0.9))
-net.addLayer(ReLULayer())
-net.addLayer(MaxPoolingLayer(3))
+net.addLayer(ConvLayer(3, 32, 7, 1e-4, 2))
+# net.addLayer(ReLULayer())
+# net.addLayer(MaxPoolingLayer(2))
+#
+# net.addLayer(ConvLayer(32, 5, 3, 1e-4))
+# net.addLayer(ReLULayer())
+# net.addLayer(MaxPoolingLayer(2))
 
 net.addLayer(FlattenLayer())
-net.addLayer(FCLayer(4 * 4 *5, 50, 1, 0.9))
+net.addLayer(FCLayer(14 * 14 * 32, 100, 1e-4))
+# net.addLayer(FCLayer(32 * 32 *3, 50, 1e-3))
 # net.addLayer(FCLayer(300, 100, 0.1, 0.9))
 net.addLayer(ReLULayer())
-net.addLayer(FCLayer(50, 10, 1, 0.9))
+net.addLayer(FCLayer(100, 10, 1e-4))
 net.addLayer(SoftmaxLayer())
 # print('net build ok')
 from data_utils import load_CIFAR10
@@ -419,6 +500,6 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=1000):
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 X_train, y_train, X_val, y_val, X_test, y_test = get_CIFAR10_data()
-N = 100
-net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],10,10)
+N = 1000
+net.train(X_train[0:N], y_train[0:N], X_val[0:N], y_val[0:N],100,10)
 # net.train(train_feature, train_label, valid_feature[0:100], valid_label[0:100], 10 ,10)
