@@ -18,9 +18,15 @@
 
 [数据来源](http://www.fit.vutbr.cz/~imikolov/rnnlm/)
 
+---
+
 ## CNN
 卷积层 ok
+
 全连接层 ok
+
 Relu ok
+
 softmax ok
+
 maxpool  .
