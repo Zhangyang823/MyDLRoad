@@ -27,4 +27,4 @@ Relu ok
 
 softmax ok
 
-maxpool  .
+maxpool  ok
