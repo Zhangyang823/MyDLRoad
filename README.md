@@ -1,20 +1,14 @@
 # MyDLRoad
 
----
-
 ## CNN_Cifar10.py
 
 实现了一个三层cnn的分类器
 
 在CIFAR-10上验证
 
----
-
 ## AlexNet
 
 还在写
-
----
 
 ## LSTM
 
@@ -23,8 +17,6 @@
 实验数据来自Tomas Mikolov的ptb数据
 
 [数据来源](http://www.fit.vutbr.cz/~imikolov/rnnlm/)
-
----
 
 ## CNN
 卷积层 ok
@@ -36,5 +28,3 @@ Relu ok
 softmax ok
 
 maxpool  .
-
-$f=\frac{1}{2}$
