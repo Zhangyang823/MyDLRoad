@@ -103,8 +103,8 @@ class ConvLayer(object):
                 for k in range(F):  # compute dw
                     dw[k, :, :, :] += np.sum(x_pad_masked * (residual[:, k, i, j])[:, None, None, None], axis=0)
                 for n in range(N):  # compute dx_pad
-                    temp_w = np.rot90(self.w,2,(2,3))
-                    dx_pad[n, :, i * stride:i * stride + HH, j * stride:j * stride + WW] += np.sum((temp_w[:, :, :, :] *
+                    temp_w = np.rot90(self.w,2,(2,3))//这种写法不旋转
+                    dx_pad[n, :, i * stride:i * stride + HH, j * stride:j * stride + WW] += np.sum((self.w[:, :, :, :] *
                                                                                                     (residual[n, :, i,
                                                                                                      j])[
                                                                                                     :, None, None,
