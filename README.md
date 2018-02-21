@@ -2,7 +2,7 @@
 
 ## CNN_Cifar10.py
 
-实现了一个三层cnn的分类器
+用tensorfow实现了一个三层cnn的分类器
 
 在CIFAR-10上验证
 
@@ -19,6 +19,9 @@
 [数据来源](http://www.fit.vutbr.cz/~imikolov/rnnlm/)
 
 ## CNN
+
+用python和numpy完成CNN的底层实现
+
 卷积层 ok
 
 全连接层 ok
